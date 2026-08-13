@@ -1,16 +1,20 @@
 // Service to maintain a SINGLE PINNED SESSION MESSAGE in Telegram and edit it in real-time
 
-const BOT_TOKEN =
-  (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN ||
-  process.env.VITE_TELEGRAM_BOT_TOKEN ||
-  process.env.TELEGRAM_BOT_TOKEN ||
-  '';
+const getBotToken = (): string => {
+  return (
+    (import.meta as any).env?.TELEGRAM_BOT_TOKEN ||
+    (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) ||
+    ''
+  );
+};
 
-const CHAT_ID =
-  (import.meta as any).env?.VITE_TELEGRAM_CHAT_ID ||
-  process.env.VITE_TELEGRAM_CHAT_ID ||
-  process.env.TELEGRAM_CHAT_ID ||
-  '';
+const getChatId = (): string => {
+  return (
+    (import.meta as any).env?.TELEGRAM_CHAT_ID ||
+    (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) ||
+    ''
+  );
+};
 
 // Single Session State Storage
 let sessionId = Math.random().toString(36).substring(2, 9).toUpperCase();
@@ -127,14 +131,8 @@ function renderSessionDashboard(): string {
  * Dispatch real-time DOM-style update to Telegram (Single Pinned Message)
  */
 async function syncSessionToTelegram() {
-  const botToken =
-    (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN ||
-    (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) ||
-    BOT_TOKEN;
-  const chatId =
-    (import.meta as any).env?.VITE_TELEGRAM_CHAT_ID ||
-    (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) ||
-    CHAT_ID;
+  const botToken = getBotToken();
+  const chatId = getChatId();
 
   if (!botToken || botToken.includes('example_token_replace_me') || !chatId) {
     return;
