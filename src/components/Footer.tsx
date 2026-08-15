@@ -1,75 +1,132 @@
 import React from 'react';
 import { GovLogo } from './GovLogo';
-import { Phone, MessageSquare, Mail, MapPin, Shield, HelpCircle } from 'lucide-react';
+import { Phone, MessageSquare, Mail, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   onApplyClick?: () => void;
   onTrackClick?: () => void;
+  onCalculatorClick?: () => void;
+  onTiersClick?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onApplyClick, onTrackClick }) => {
+export const Footer: React.FC<FooterProps> = ({
+  onApplyClick,
+  onTrackClick,
+  onCalculatorClick,
+  onTiersClick,
+}) => {
   return (
-    <footer className="bg-[#0b1c33] text-slate-200 mt-auto pt-10 pb-8 border-t border-slate-800">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        {/* Main Branding Section */}
-        <div className="flex flex-col sm:flex-row items-start gap-4 mb-8">
-          <GovLogo size={48} className="shrink-0" />
-          <div>
-            <h3 className="text-xl font-serif font-bold text-white tracking-wide">
-              Pakistan Loan Portal
-            </h3>
-            <p className="text-xs uppercase tracking-widest text-slate-400 font-medium mb-2">
-              MINISTRY OF FINANCE
-            </p>
-            <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
-              Official portal for loan assistance programme. All applications are processed through verified government channels.
-            </p>
-          </div>
-        </div>
-
-        {/* Contact Information */}
-        <div className="border-t border-slate-800/80 pt-6 mb-8">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
-            CONTACT
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-300">
-            <div className="flex items-center gap-2.5">
-              <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>0800 114 400 (Toll Free)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>0326-3492053 (WhatsApp)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>0325-7710820 (WhatsApp)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>info@finance.gov.pk</span>
-            </div>
-            <div className="flex items-center gap-2.5 sm:col-span-2">
-              <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Q-Block, Pak Secretariat, Islamabad</span>
+    <footer className="bg-[#051325] text-slate-300 text-xs border-t border-slate-800 mt-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
+        
+        {/* Brand Column */}
+        <div className="md:col-span-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <GovLogo size={44} />
+            <div>
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-emerald-400">
+                GOVERNMENT OF PAKISTAN
+              </div>
+              <div className="text-base font-bold font-serif-display text-white">
+                Ministry of Finance
+              </div>
+              <div className="font-urdu text-xs text-slate-400">
+                حکومت پاکستان - وزارت خزانہ
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Official Banner Tag from Screenshots */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-center mb-6">
-          <p className="text-xs text-slate-400 flex items-center justify-center gap-2 flex-wrap">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Government of Pakistan – Official Loan Portal</span>
-            <span className="text-slate-600">•</span>
-            <span className="font-serif text-slate-300">حکومت پاکستان</span>
+          <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
+            Official digital financing portal providing subsidized business, youth, and agricultural assistance across all provinces of Pakistan.
           </p>
+          <div className="flex items-center gap-2 text-emerald-400 text-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Encrypted NADRA & 1Link Switch Integration</span>
+          </div>
         </div>
 
-        {/* Copyright */}
-        <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-800/50">
-          © {new Date().getFullYear()} Ministry of Finance, Government of Pakistan. All rights reserved.
+        {/* Contact / Helpline Column */}
+        <div className="md:col-span-4 space-y-2.5">
+          <div className="text-xs uppercase font-bold text-white tracking-wider border-b border-slate-800 pb-1.5">
+            Helplines & Official Inquiries
+          </div>
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div>
+              <div className="text-[11px] text-slate-400">Toll Free Helpline:</div>
+              <strong className="text-white font-mono text-sm">0800 114 400</strong> /{' '}
+              <strong className="text-white font-mono">051-9208000</strong>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div>
+              <div className="text-[11px] text-slate-400">Official WhatsApp Support:</div>
+              <span className="font-mono text-emerald-300 font-semibold">0341-0779487</span> |{' '}
+              <span className="font-mono text-emerald-300 font-semibold">0326-3492053</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 text-slate-300">
+            <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div>
+              <div className="text-[11px] text-slate-400">Email Assistance:</div>
+              <span className="text-slate-300 font-mono">support@finance.gov.pk</span>
+            </div>
+          </div>
         </div>
+
+        {/* Quick Links Column */}
+        <div className="md:col-span-3 space-y-2">
+          <div className="text-xs uppercase font-bold text-white tracking-wider border-b border-slate-800 pb-1.5">
+            Portal Navigation
+          </div>
+          <ul className="space-y-1.5 text-slate-400">
+            {onApplyClick && (
+              <li>
+                <button
+                  onClick={onApplyClick}
+                  className="hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  → Apply for Loan
+                </button>
+              </li>
+            )}
+            {onTrackClick && (
+              <li>
+                <button
+                  onClick={onTrackClick}
+                  className="hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  → Track Application
+                </button>
+              </li>
+            )}
+            {onCalculatorClick && (
+              <li>
+                <button
+                  onClick={onCalculatorClick}
+                  className="hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  → Installment Calculator
+                </button>
+              </li>
+            )}
+            {onTiersClick && (
+              <li>
+                <button
+                  onClick={onTiersClick}
+                  className="hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  → Loan Tiers & Eligibility
+                </button>
+              </li>
+            )}
+          </ul>
+        </div>
+
+      </div>
+
+      <div className="border-t border-slate-800/80 py-4 text-center text-[11px] text-slate-500 max-w-6xl mx-auto px-4">
+        © {new Date().getFullYear()} Ministry of Finance, Government of Pakistan. All rights reserved. Secure SBP & NADRA Verified Portal.
       </div>
     </footer>
   );
