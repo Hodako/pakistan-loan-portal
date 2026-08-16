@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { PersonalInfo } from '../types';
 import { PAKISTAN_PROVINCES } from '../data/mockData';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
-import { sendRealtimePersonalInfoUpdate } from '../services/telegramService';
 
 interface Step1Props {
   data: PersonalInfo;
   onUpdate: (updated: Partial<PersonalInfo>) => void;
-  onNext: () => void;
+  onNext: (data?: PersonalInfo) => void;
   onBack: () => void;
 }
 
@@ -41,32 +40,24 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({
 
   const handleCnicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCNIC(e.target.value);
-    const updated = { ...data, cnic: formatted };
     onUpdate({ cnic: formatted });
-    sendRealtimePersonalInfoUpdate(updated);
     if (errors.cnic) setErrors((prev) => ({ ...prev, cnic: '' }));
   };
 
   const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatMobile(e.target.value);
-    const updated = { ...data, mobileNo: formatted };
     onUpdate({ mobileNo: formatted });
-    sendRealtimePersonalInfoUpdate(updated);
     if (errors.mobileNo) setErrors((prev) => ({ ...prev, mobileNo: '' }));
   };
 
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatDOB(e.target.value);
-    const updated = { ...data, dob: formatted };
     onUpdate({ dob: formatted });
-    sendRealtimePersonalInfoUpdate(updated);
     if (errors.dob) setErrors((prev) => ({ ...prev, dob: '' }));
   };
 
   const handleGenericChange = (field: keyof PersonalInfo, value: string) => {
-    const updated = { ...data, [field]: value };
     onUpdate({ [field]: value });
-    sendRealtimePersonalInfoUpdate(updated);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
@@ -87,7 +78,7 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onNext();
+      onNext(data);
     }
   };
 
@@ -278,7 +269,7 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({
             type="button"
             onClick={onBack}
             id="step1-back-btn"
-            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back / واپس</span>
@@ -287,7 +278,7 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({
           <button
             type="submit"
             id="step1-continue-btn"
-            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-3 px-4 bg-[#0f2848] hover:bg-[#163a66] active:bg-[#0b1c33] text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>Continue / جاری رکھیں</span>
             <ArrowRight className="w-4 h-4" />
@@ -297,4 +288,3 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({
     </div>
   );
 };
-
