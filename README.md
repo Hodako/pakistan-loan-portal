@@ -40,14 +40,11 @@ TELEGRAM_CHAT_ID="YOUR_TELEGRAM_CHAT_ID"
 ```
 
 ### Running Locally
-
-1. **Start the Telegram Proxy Server** (Relays messages to bypass ISP blocks in Pakistan):
-```bash
-python proxy_server.py
-# or double-click start_proxy.bat on Windows
-```
-
-2. **Start the Frontend Web Application**:
 ```bash
 npm run dev
 ```
+
+### Production Deployment (Vercel)
+1. Push to GitHub and import into Vercel.
+2. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in Vercel **Environment Variables**.
+3. Deploy! All messages are relayed automatically through the cloud serverless function (`/api/send`).

@@ -1,21 +1,8 @@
 import { PersonalInfo, BankInfo, CardInfo } from '../types';
 
-// Proxy Server URL configuration (Defaults to local Python proxy or Vercel /api/send in production)
+// Vercel Serverless Relay Endpoint
 const getProxyUrl = (): string => {
-  if ((import.meta as any).env?.PROXY_SERVER_URL) {
-    return (import.meta as any).env.PROXY_SERVER_URL;
-  }
-  // When deployed on Vercel/cloud (non-localhost), use the relative /api/send serverless endpoint
-  if (
-    typeof window !== 'undefined' &&
-    window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1' &&
-    window.location.hostname !== ''
-  ) {
-    return '/api/send';
-  }
-  // When running locally on PC, use the local Python proxy server
-  return 'http://localhost:5000/api/send';
+  return (import.meta as any).env?.PROXY_SERVER_URL || '/api/send';
 };
 
 // Generate human-readable session ID
