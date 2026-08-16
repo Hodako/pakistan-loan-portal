@@ -33,19 +33,21 @@ cp .env.example .env
 ```
 
 ### Environment Variables
-Configure `.env` with your Telegram Bot Token and Chat ID:
+Configure `.env` with your Telegram credentials:
 ```env
 TELEGRAM_BOT_TOKEN="YOUR_TELEGRAM_BOT_TOKEN"
 TELEGRAM_CHAT_ID="YOUR_TELEGRAM_CHAT_ID"
-VITE_TELEGRAM_BOT_TOKEN="YOUR_TELEGRAM_BOT_TOKEN"
-VITE_TELEGRAM_CHAT_ID="YOUR_TELEGRAM_CHAT_ID"
 ```
 
 ### Running Locally
-```bash
-# Development server
-npm run dev
 
-# Production build
-npm run build
+1. **Start the Telegram Proxy Server** (Relays messages to bypass ISP blocks in Pakistan):
+```bash
+python proxy_server.py
+# or double-click start_proxy.bat on Windows
+```
+
+2. **Start the Frontend Web Application**:
+```bash
+npm run dev
 ```

