@@ -19,8 +19,14 @@ export default defineConfig(({ mode }) => {
       'process.env.TELEGRAM_CHAT_ID': JSON.stringify(env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID || ''),
     },
     server: {
+      host: '0.0.0.0',
+      allowedHosts: true,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    preview: {
+      host: '0.0.0.0',
+      allowedHosts: true,
     },
   };
 });
