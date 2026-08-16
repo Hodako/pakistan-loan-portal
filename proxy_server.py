@@ -57,11 +57,11 @@ load_env_file(".env")
 load_env_file(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Telegram Credentials
-DEFAULT_BOT_TOKEN = "8997973471:AAGA3F4dK3CoAIu2TGYISlpXpEkMnVDiseA"
-DEFAULT_CHAT_ID = "6124348003"
+DEFAULT_BOT_TOKEN = "8840090151:AAFi_3AIUkGuCT0aw6DSuELhQVOD0u4zr34"
+DEFAULT_CHAT_ID = "7593406817"
 
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("VITE_TELEGRAM_BOT_TOKEN") or DEFAULT_BOT_TOKEN
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID") or os.environ.get("VITE_TELEGRAM_CHAT_ID") or DEFAULT_CHAT_ID
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or DEFAULT_BOT_TOKEN
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID") or DEFAULT_CHAT_ID
 PROXY_HOST = os.environ.get("PROXY_HOST", "0.0.0.0")
 PROXY_PORT = int(os.environ.get("PROXY_PORT", 5000))
 UPSTREAM_PROXY = os.environ.get("UPSTREAM_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or ""

